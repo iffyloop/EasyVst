@@ -4,4 +4,4 @@ EasyVst is a small, easy-to-use VST3 wrapper that makes it easy to host VST3 plu
 
 ## License
 
-EasyVst uses the Creative Commons Zero v1.0 Universal license. This license does not apply to the Steinberg VST SDK which is wrapped by EasyVst; the Steinberg SDK has additional terms and conditions to which you must also agree if you choose to incorporate it into your product. See the [LICENSE](LICENSE) file for more information.
+Your choice of Public Domain (Unlicense) or MIT No Attribution - please read the [LICENSE](LICENSE) file for more details. This license does not apply to the Steinberg VST SDK which is wrapped by EasyVst; the Steinberg SDK has additional terms and conditions to which you must also agree if you choose to incorporate it into your product. See the [LICENSE](LICENSE) file for more information.
