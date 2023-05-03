@@ -13,8 +13,8 @@
 #include <pluginterfaces/vst/ivstprocesscontext.h>
 #include <pluginterfaces/gui/iplugview.h>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_syswm.h>
+#include <SDL.h>
+#include <SDL_syswm.h>
 
 class EasyVst {
 public:
