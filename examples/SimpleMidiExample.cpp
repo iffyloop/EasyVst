@@ -13,10 +13,11 @@
 //
 #include <RtMidi.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 struct MidiNoteMessage {
+        int channel = 0;
         int noteNum = -1;
         float velocity = 0.0f;
         bool isNoteOn = false;
@@ -63,15 +64,16 @@ static int audioCallback(const void *inputBuffer, void *pOutputBuffer, unsigned 
                 if (!hasNotes) {
                         break;
                 }
-                
+
                 Steinberg::Vst::Event evt = {};
                 evt.busIndex = 0;
                 evt.sampleOffset = 0;
                 evt.ppqPosition = currentBeat;
                 evt.flags = Steinberg::Vst::Event::EventFlags::kIsLive;
-                if (note.isNoteOn) {
+                if (note.isNoteOn)
+                {
                         evt.type = Steinberg::Vst::Event::EventTypes::kNoteOnEvent;
-                        evt.noteOn.channel = 0;
+                        evt.noteOn.channel = note.channel;
                         evt.noteOn.pitch = note.noteNum;
                         evt.noteOn.tuning = 0.0f;
                         evt.noteOn.velocity = note.velocity;
@@ -79,7 +81,7 @@ static int audioCallback(const void *inputBuffer, void *pOutputBuffer, unsigned 
                         evt.noteOn.noteId = -1;
                 } else {
                         evt.type = Steinberg::Vst::Event::EventTypes::kNoteOffEvent;
-                        evt.noteOff.channel = 0;
+                        evt.noteOff.channel = note.channel;
                         evt.noteOff.pitch = note.noteNum;
                         evt.noteOff.tuning = 0.0f;
                         evt.noteOff.velocity = note.velocity;
@@ -108,7 +110,7 @@ static int audioCallback(const void *inputBuffer, void *pOutputBuffer, unsigned 
 void midiCallback(double deltaTime, std::vector<unsigned char> *message, void *pUserData)
 {
         if (message->size() < 3) {
-                return;
+            return;
         }
 
         unsigned char command = message->at(0);
@@ -117,14 +119,16 @@ void midiCallback(double deltaTime, std::vector<unsigned char> *message, void *p
 
         UserData *userData = static_cast<UserData *>(pUserData);
 
-        if (command == 144) {
+        if ((command & 0xf0) == 144) {
                 MidiNoteMessage noteOnMsg;
+                noteOnMsg.channel = command & 0x0f;
                 noteOnMsg.noteNum = noteNum;
                 noteOnMsg.velocity = static_cast<float>(velocity) / 127.0f;
                 noteOnMsg.isNoteOn = true;
                 userData->notesQueue.enqueue(noteOnMsg);
-        } else if (command == 128) {
+        } else if ((command & 0xf0) == 128) {
                 MidiNoteMessage noteOffMsg;
+                noteOffMsg.channel = command & 0x0f;
                 noteOffMsg.noteNum = noteNum;
                 noteOffMsg.velocity = static_cast<float>(velocity) / 127.0f;
                 noteOffMsg.isNoteOn = false;
@@ -176,24 +180,31 @@ int main(int argc, char *argv[])
                 std::cerr << "No MIDI inputs available on your system" << std::endl;
                 return 1;
         }
-        std::cout << "Please type the number that corresponds to the MIDI device you'd like to use and press ENTER" << std::endl;
-        for (unsigned int i = 0; i < numMidiPorts; ++i) {
-                try {
-                        std::string portName = midiIn->getPortName(i);
-                        std::cout << (i + 1) << ") " << portName << std::endl;
-                } catch (RtMidiError &err) {
-                        err.printMessage();
-                        return 1;
-                }
-        }
+
         int selectedIndex = 0;
-        std::cin >> selectedIndex;
-        --selectedIndex;
+        if (numMidiPorts == 1) {
+                selectedIndex = 0;
+        } else {
+                std::cout << "Please type the number that corresponds to the MIDI device you'd like to use and press ENTER" << std::endl;
+                for (unsigned int i = 0; i < numMidiPorts; ++i) {
+                        try {
+                                std::string portName = midiIn->getPortName(i);
+                                std::cout << (i + 1) << ") " << portName << std::endl;
+                        } catch (RtMidiError &err) {
+                                err.printMessage();
+                                return 1;
+                        }
+                }
+                std::cin >> selectedIndex;
+                --selectedIndex;
+        }
+
         if (selectedIndex < 0 || selectedIndex >= numMidiPorts) {
                 std::cerr << "Invalid MIDI device selection" << std::endl;
                 return 1;
         }
-        std::cout << "You have selected device: " << selectedIndex + 1 << std::endl;
+        std::string selectedPortName = midiIn->getPortName(selectedIndex);
+        std::cout << "You have selected device: " << selectedPortName << std::endl;
         try {
                 midiIn->openPort(selectedIndex);
                 midiIn->setCallback(&midiCallback, &userData);
